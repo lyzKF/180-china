@@ -44,16 +44,16 @@ class JD():
         print("ProductID:{0}".format(productid))
         # 创建CSV文件，并写入字段名
         csv_object = open(self.csv_file, "a", encoding='utf-8', newline='')
-        product_text = open('../mengniu/data2/' + str(productid) + '.txt', 'w')
+        product_text = open('../mengniu/data/' + str(productid) + '.txt', 'w')
         product_text.write(product_price+'\n')
         writer = csv.writer(csv_object)
         tag = True
+        # 评论API接口url
+        url = 'https://club.jd.com/comment/productPageComments.action'
         # 爬取JD接口，获取产品相关信息
         while tag:
             # 创建一个session
             with requests.session() as s:
-                # 评论API接口url
-                url = 'https://club.jd.com/comment/productPageComments.action'
                 # 表单数据，其中productId与page很关键
                 data = {
                     'productId': productid,
@@ -71,7 +71,8 @@ class JD():
                         print("comments not exit!!!")
                         return 0
                     # 写入产品评价等信息
-                    comment_temp = r['comments']
+                    if r['comments']:
+                        comment_temp = r['comments']
                     for item in comment_temp:
                         userexpvalue_temp = self.key_exit(item=item, str_temp='userExpValue')
                         id_temp = self.key_exit(item=item, str_temp='id')
@@ -96,12 +97,12 @@ class JD():
                                          replyCount_temp, score_temp, usefulVoteCount_temp, uselessVoteCount_temp,
                                          userLevelId_temp, viewCount_temp, isReplyGrade_temp, userClient_temp, userLevelName_temp,
                                          plusAvailable_temp, userexpvalue_temp, recommend_temp, content_temp])
+                    data['page'] += 1
                 except Exception as e:
                     # print("id:{0}\aerror:{1}".format(productid, e))
                     data['page'] = 0
                     tag = False
                     pass
-                data['page'] += 1
         # 对于每个产品，将产品部分信息写入以其productId命名的文本文档中
         if r['productCommentSummary']:
             for key in r['productCommentSummary'].keys():
@@ -176,7 +177,7 @@ class JD():
         self.log_info("爬虫程序终止")
 
 if __name__ == "__main__":
-    csv_file = '../mengniu/data2/product_information_mengniu.csv'
+    csv_file = '../mengniu/data/product_information_mengniu.csv'
     url_file = '../mengniu/url/mengniu_url.csv'
     jd = JD(url_file=url_file, csv_file=csv_file)
     urls = jd.url_list()
