@@ -4,7 +4,6 @@
 # Functions: 京东产品信息爬虫程序
 # nohup python get-info-JD.py > log.txt 2>&1 &
 ###############################################
-
 import requests
 import csv
 from multiprocessing import Pool
@@ -35,8 +34,8 @@ class JD():
             str_temp_value = u''
         return str_temp_value
 
-    # 写入产品信息
-    def comments_infor(self, productid, product_price):
+    # 写入评论信息
+    def comments_infor(self, productid):
         """
         param productid: 京东商品唯一标识码
         return: 返回商品的productCommentSummary和hotCommentTagStatistics信息
@@ -44,12 +43,11 @@ class JD():
         print("ProductID:{0}".format(productid))
         # 创建CSV文件，并写入字段名
         csv_object = open(self.csv_file, "a", encoding='utf-8', newline='')
-        product_text = open('../mengniu/data/' + str(productid) + '.txt', 'w')
-        product_text.write(product_price+'\n')
         writer = csv.writer(csv_object)
         tag = True
         # 评论API接口url
         url = 'https://club.jd.com/comment/productPageComments.action'
+        pagenumber = 0
         # 爬取JD接口，获取产品相关信息
         while tag:
             # 创建一个session
@@ -61,7 +59,7 @@ class JD():
                     'sortType': 5,
                     'pageSize': 10,
                     'isShadowSku': 0,
-                    'page': 0
+                    'page': pagenumber
                 }
                 requests.adapters.DEFAULT_RETRIES = 5
                 s.keep_live = False
@@ -97,26 +95,59 @@ class JD():
                                          replyCount_temp, score_temp, usefulVoteCount_temp, uselessVoteCount_temp,
                                          userLevelId_temp, viewCount_temp, isReplyGrade_temp, userClient_temp, userLevelName_temp,
                                          plusAvailable_temp, userexpvalue_temp, recommend_temp, content_temp])
-                    data['page'] += 1
+                    pagenumber += 1
                 except Exception as e:
-                    # print("id:{0}\aerror:{1}".format(productid, e))
+                    print("Total Page:{0}".format(pagenumber))
+                    pagenumber = 0
                     data['page'] = 0
                     tag = False
                     pass
-        # 对于每个产品，将产品部分信息写入以其productId命名的文本文档中
-        if r['productCommentSummary']:
-            for key in r['productCommentSummary'].keys():
-                content_temp = str(key) + ':' + str(r['productCommentSummary'][key])
-                product_text.write(content_temp + '\n')
-        if r['hotCommentTagStatistics']:
-            for item in r['hotCommentTagStatistics']:
-                item_temp = str(item['name']) + ':' + str(item['count'])
-                product_text.write(item_temp + '\n')
         # 文件系统关闭       
-        product_text.close()
         csv_object.close()
 
-    # 从url_file文件中读取产品的url信息、价格信息，然后写入列表
+    # 写入产品信息
+    def title_infor(self, productid, product_price):
+        """
+        param productid: 京东商品唯一标识码
+        """
+        # 创建txt文件，并写入字段名
+        product_text = open('../mengniu/data/' + str(productid) + '.txt', 'w')
+        product_text.write(product_price+'\n')
+        # 评论API接口url
+        url = 'https://club.jd.com/comment/productPageComments.action'
+        # 创建一个session
+        with requests.session() as s:
+            # 表单数据，其中productId与page很关键
+            data = {
+                'productId': productid,
+                'score': 0,
+                'sortType': 5,
+                'pageSize': 10,
+                'isShadowSku': 0,
+                'page': 0
+            }
+            requests.adapters.DEFAULT_RETRIES = 5
+            s.keep_live = False
+            try:
+                r = s.get(url, params=data).json()
+                if r is None:
+                    print("comments not exit!!!")
+                    return 0
+                # 对于每个产品，将产品部分信息写入以其productId命名的文本文档中
+                if r['productCommentSummary']:
+                    for key in r['productCommentSummary'].keys():
+                        content_temp = str(key) + ':' + str(r['productCommentSummary'][key])
+                        product_text.write(content_temp + '\n')
+                if r['hotCommentTagStatistics']:
+                    for item in r['hotCommentTagStatistics']:
+                        item_temp = str(item['name']) + ':' + str(item['count'])
+                        product_text.write(item_temp + '\n')
+                # 文件系统关闭       
+                product_text.close()
+            except Exception as e:
+                print("Error:{0}".format(e))
+                pass
+    
     def url_list(self):
         '''
         return: 返回一个列表，列表对象是商品url与商品价格的二元组
@@ -148,7 +179,8 @@ class JD():
             # 获取产品ID
             productid_temp = url_temp.replace('//item.jd.com/', ' ').replace('.html', ' ')
             # 调用方法comments_info
-            self.comments_infor(productid=int(productid_temp), product_price = price_temp)
+            self.comments_infor(productid=int(productid_temp))
+            self.title_infor(productid=int(productid_temp), product_price = price_temp)
             # time.sleep(1)
 
     # 自定义log函数，主要是加上时间
@@ -177,14 +209,18 @@ class JD():
         self.log_info("爬虫程序终止")
 
 if __name__ == "__main__":
+    # 评论信息存储路径
     csv_file = '../mengniu/data/product_information_mengniu.csv'
+    # 产品url存储路径
     url_file = '../mengniu/url/mengniu_url.csv'
+    # 定义类对象 
     jd = JD(url_file=url_file, csv_file=csv_file)
+    # 读取url，返回url列表
     urls = jd.url_list()
     # 是否多进程爬取数据
     multiprocess = sys.argv[1]
-    if multiprocess == 0:
+    if multiprocess == 'F':
         for item in urls:
             jd.write_info(product_info = item)
-    else:
+    elif multiprocess == 'T':
         jd.run(ids = urls)
