@@ -191,12 +191,10 @@ def run():
         # 读取停用词
         jd.log_info("读取停用词表......")
         stop_words = text_seg.read_stop_word()
-        print(stop_words[-10:])
 
         # 分词处理、去停用词。需要把seg_words_without_sword保存下来
         jd.log_info("分词、去停用词处理......")
         seg_words_without_sword = text_seg.cut_remove_word_function(stop_words)
-        print("京东" in stop_words)
         
         #
         jd.log_info("保存分词处理后的结果......")
