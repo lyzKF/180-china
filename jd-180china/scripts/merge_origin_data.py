@@ -9,10 +9,6 @@
 # * Filename      : merge_origin_data.py
 # * Description   : 
 # *********************************************************
-# conding:utf-8
-# Created by lyz on 2018/1/10
-# Email: lyz038015@163.com
-# GitHub: https://github.com/lyzKF
 
 import csv, os
 import re
@@ -174,15 +170,18 @@ def run():
     """
     return:
     """
-    if os.path.exists("../model/lda.model"):
-        jd.log_info("模型已经存在，加载模型......")
-        lda = models.LdaModel.load("../model/lda.model")
+    #  定义类对象
+    dc = data_clean()
+    pkl_file_temp = '../model/seg_words.pkl'
+    if os.path.exists(pkl_file_temp):
+        jd.log_info("分词已经存在，加载中......")
+        lda = models.LdaModel.load(pkl_file_temp)
     else:
-        jd.log_info("模型训练......")
-        # 定义类对象
-        dc = data_clean()
+        jd.log_info("分词处理中......")
+        
         # 融合数据
         data_temp = dc.merge_data()
+        
         #
         text_seg = text_segmentation(data_temp=data_temp, stop_words_path='./stopWords.txt', word_threshold=100)
         # 读取停用词
@@ -194,9 +193,8 @@ def run():
         seg_words_without_sword = text_seg.cut_remove_word_function(stop_words)
         
         #
-        # for item in seg_words_without_sword:
-            # print(item)
-
+        jd.log_info("保存分词处理后的结果......")
+        dc.store_data(pkl_file_temp, seg_words_without_sword)
         # 清理内存，删除停用词、分词列表对象
         del stop_words
     # 生成字典
@@ -204,37 +202,40 @@ def run():
     word_dict = corpora.Dictionary(seg_words_without_sword)
     corpus = [word_dict.doc2bow(text) for text in seg_words_without_sword]
     #
-    #jd.log_info("训练tf_idf模型......")
-    #tfidf = models.TfidfModel(corpus)
-    #
-    #corpus_tfidf = tfidf[corpus]
-    #
+    """
+    # jd.log_info("训练tf_idf模型......")
+    # tfidf = models.TfidfModel(corpus)
+    # corpus_tfidf = tfidf[corpus]
+    """
+    # 模型训练
     jd.log_info("训练LDA模型.......")
     lda = models.LdaModel(corpus = corpus, id2word=word_dict, iterations = 100,num_topics=3)
-    lda_coherence = CoherenceModel(model = lda, corpus = corpus, dictionary = word_dict, coherence = 'u_mass')
-    print(lda_coherence.get_coherence())
-    lda_vis = pyLDAvis.gensim.prepare(lda, corpus, word_dict)
-    pyLDAvis.show(lda_vis)
-
     """
     # corpus_tfidf: tf-idf词向量
     # id2word: a map from id to word
     # num_topics: the number of topics
     """
+    # Coherence Model
+    lda_coherence = CoherenceModel(model = lda, corpus = corpus, dictionary = word_dict, coherence = 'u_mass')
+    print(lda_coherence.get_coherence())
+    lda_vis = pyLDAvis.gensim.prepare(lda, corpus, word_dict)
+    pyLDAvis.show(lda_vis)
     #
     jd.log_info("保存模型")
     lda.save("../model/lda.model")
+    """
     # lda模型对象训练tf-idf词向量
     # corpus_lda = lda[corpus_tfidf]
     # print(corpus_lda)
-    result = lda.get_document_topics(corpus[0], per_word_topics=True)
-    print(result)
-    jd.log_info("topics相关")
-    result_topic = lda.get_topic_terms(topicid=2, topn= 10)
+    """
+    # result = lda.get_document_topics(corpus[0], per_word_topics=True)
+    # print(result)
+    # result_topic = lda.get_topic_terms(topicid=2, topn= 10)
     # print("模型评价perplexity:{0}".format(lda.log_perplexity(chun)))
-    for item in result_topic:
-        print(item)
-
+    # for item in result_topic:
+        # print(item)
+    # LDA主题展示
+    pyLDAvis.show(lda_vis)
 if __name__ == "__main__":
     #
     run()
