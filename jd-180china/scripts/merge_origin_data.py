@@ -128,6 +128,9 @@ class text_segmentation():
         jieba.initialize()
         # 添加字典
         jieba.add_word("特仑苏")
+        jie.add_word("蒙牛")
+        jie.add_word("伊利")
+        jie.add_word("三元")
 
     #
     def read_stop_word(self):
@@ -155,7 +158,7 @@ class text_segmentation():
             # 临时存储分词对象
             words_temp = list()
             # cut_words_temp = jieba.cut(sentence[1], cut_all= False, HMM=True)
-            cut_words_temp = jieba.analyse.extract_tags(sentence[1], topK=5)
+            cut_words_temp = jieba.analyse.extract_tags(sentence[1], topK=3)
             # print '/'.join(split_word_list)
             # type : list
             cut_words_temp = [word for word in list(cut_words_temp)]
@@ -175,7 +178,7 @@ def run():
     pkl_file_temp = '../model/seg_words.pkl'
     if os.path.exists(pkl_file_temp):
         jd.log_info("分词已经存在，加载中......")
-        lda = models.LdaModel.load(pkl_file_temp)
+        seg_words_without_sword = dc.get_data_from_pkl(pkl_file_temp)
     else:
         jd.log_info("分词处理中......")
         
@@ -200,6 +203,7 @@ def run():
     # 生成字典
     jd.log_info("生成字典......")
     word_dict = corpora.Dictionary(seg_words_without_sword)
+    print(word_dict)
     corpus = [word_dict.doc2bow(text) for text in seg_words_without_sword]
     #
     """
@@ -209,7 +213,7 @@ def run():
     """
     # 模型训练
     jd.log_info("训练LDA模型.......")
-    lda = models.LdaModel(corpus = corpus, id2word=word_dict, iterations = 100,num_topics=3)
+    lda = models.LdaModel(corpus = corpus, id2word=word_dict, iterations = 100,num_topics=6)
     """
     # corpus_tfidf: tf-idf词向量
     # id2word: a map from id to word
@@ -219,7 +223,6 @@ def run():
     lda_coherence = CoherenceModel(model = lda, corpus = corpus, dictionary = word_dict, coherence = 'u_mass')
     print(lda_coherence.get_coherence())
     lda_vis = pyLDAvis.gensim.prepare(lda, corpus, word_dict)
-    pyLDAvis.show(lda_vis)
     #
     jd.log_info("保存模型")
     lda.save("../model/lda.model")
