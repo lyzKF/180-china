@@ -128,9 +128,9 @@ class text_segmentation():
         jieba.initialize()
         # 添加字典
         jieba.add_word("特仑苏")
-        jie.add_word("蒙牛")
-        jie.add_word("伊利")
-        jie.add_word("三元")
+        jieba.add_word("蒙牛")
+        jieba.add_word("伊利")
+        jieba.add_word("三元")
 
     #
     def read_stop_word(self):
