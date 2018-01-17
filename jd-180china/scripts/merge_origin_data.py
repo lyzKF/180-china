@@ -174,31 +174,31 @@ def run():
     """
     return:
     """
-#    if os.path.exists("../model/lda.model"):
-#        jd.log_info("模型已经存在，加载模型......")
-#        lda = models.LdaModel.load("../model/lda.model")
-#    else:
-    jd.log_info("暂无模型，模型训练......")
-    # 定义类对象
-    dc = data_clean()
-    # 融合数据
-    data_temp = dc.merge_data()
-    #
-    text_seg = text_segmentation(data_temp=data_temp, stop_words_path='./stopWords.txt', word_threshold=100)
-    # 读取停用词
-    jd.log_info("读取停用词表......")
-    stop_words = text_seg.read_stop_word()
+    if os.path.exists("../model/lda.model"):
+        jd.log_info("模型已经存在，加载模型......")
+        lda = models.LdaModel.load("../model/lda.model")
+    else:
+        jd.log_info("模型训练......")
+        # 定义类对象
+        dc = data_clean()
+        # 融合数据
+        data_temp = dc.merge_data()
+        #
+        text_seg = text_segmentation(data_temp=data_temp, stop_words_path='./stopWords.txt', word_threshold=100)
+        # 读取停用词
+        jd.log_info("读取停用词表......")
+        stop_words = text_seg.read_stop_word()
 
-    # 分词处理、去停用词。需要把seg_words_without_sword保存下来
-    jd.log_info("分词、去停用词处理......")
-    seg_words_without_sword = text_seg.cut_remove_word_function(stop_words)
-    
-    #
-    # for item in seg_words_without_sword:
-        # print(item)
+        # 分词处理、去停用词。需要把seg_words_without_sword保存下来
+        jd.log_info("分词、去停用词处理......")
+        seg_words_without_sword = text_seg.cut_remove_word_function(stop_words)
+        
+        #
+        # for item in seg_words_without_sword:
+            # print(item)
 
-    # 清理内存，删除停用词、分词列表对象
-    del stop_words
+        # 清理内存，删除停用词、分词列表对象
+        del stop_words
     # 生成字典
     jd.log_info("生成字典......")
     word_dict = corpora.Dictionary(seg_words_without_sword)
