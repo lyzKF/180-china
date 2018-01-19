@@ -20,6 +20,7 @@ from gensim import corpora, models, similarities
 
 import pyLDAvis.gensim
 from gensim.models.coherencemodel import CoherenceModel
+import matplotlib.pyplot as plt
 # 导入自己的库，避免重复造轮子
 import jd
 
@@ -169,6 +170,21 @@ class text_segmentation():
             seg_words_without_sword.append(words_temp)
         return seg_words_without_sword
 
+    #
+    def show_topic(self,perplexity, coherence):
+        """
+        """
+        plt.figure()
+        num_topics = [x for x in range(2,100,1)]
+        plt.plot(perplerxity, num_topics, 'b*')
+        plt.plot(coherence, num_topics, 'r')
+        plt.xlabel("Num_topics")
+        plt.ylabel("Quanlity")
+        plt.title('perplexity & coherence')
+        plt.legend()
+        plt.show()
+
+
 
 def run():
     """
@@ -176,26 +192,22 @@ def run():
     """
     #  定义类对象
     dc = data_clean()
+    # 融合数据
+    data_temp = dc.merge_data()
     pkl_file_temp = '../model/seg_words.pkl'
     if os.path.exists(pkl_file_temp):
         jd.log_info("分词已经存在，加载中......")
         seg_words_without_sword = dc.get_data_from_pkl(pkl_file_temp)
     else:
         jd.log_info("分词处理中......")
-        
-        # 融合数据
-        data_temp = dc.merge_data()
-        
         #
         text_seg = text_segmentation(data_temp=data_temp, stop_words_path='./stopWords.txt', word_threshold=100)
         # 读取停用词
         jd.log_info("读取停用词表......")
         stop_words = text_seg.read_stop_word()
-
         # 分词处理、去停用词。需要把seg_words_without_sword保存下来
         jd.log_info("分词、去停用词处理......")
         seg_words_without_sword = text_seg.cut_remove_word_function(stop_words)
-        
         #
         jd.log_info("保存分词处理后的结果......")
         dc.store_data(pkl_file_temp, seg_words_without_sword)
@@ -204,7 +216,6 @@ def run():
     # 生成字典
     jd.log_info("生成字典......")
     word_dict = corpora.Dictionary(seg_words_without_sword)
-    print(word_dict)
     corpus = [word_dict.doc2bow(text) for text in seg_words_without_sword]
     #
     """
@@ -214,19 +225,32 @@ def run():
     """
     # 模型训练
     jd.log_info("训练LDA模型.......")
-    lda = models.LdaModel(corpus = corpus, id2word=word_dict, iterations = 100,num_topics=6)
-    """
-    # corpus_tfidf: tf-idf词向量
-    # id2word: a map from id to word
-    # num_topics: the number of topics
-    """
-    # Coherence Model
-    lda_coherence = CoherenceModel(model = lda, corpus = corpus, dictionary = word_dict, coherence = 'u_mass')
-    print(lda_coherence.get_coherence())
-    lda_vis = pyLDAvis.gensim.prepare(lda, corpus, word_dict)
+    perplexity_temp, coherence_temp = list(), list()
+    for i in range(2,100,1):
+        print("num_topics:{0}".format(i))
+        lda = models.LdaModel(corpus = corpus, id2word=word_dict, iterations = 100,num_topics=i)
+        log_perplexity = lda.log_perplexity(corpus)
+        print("\a\a模型评价perplexity:{0}".format(log_perplexity))
+        """
+        # corpus_tfidf: tf-idf词向量
+        # id2word: a map from id to word
+        # num_topics: the number of topics
+        """
+        # Coherence Model:Quantitative approach
+        # u_mass
+        # lda_coherence = CoherenceModel(model = lda, corpus = corpus, dictionary = word_dict, coherence = 'u_mass')
+        # c_v
+        lda_coherence = CoherenceModel(model = lda, texts = seg_words_without_sword, dictionary = word_dict, coherence = 'c_v')
+        coherence = lda_coherence.get_coherence()
+        print("\a\aCoherence:{0}".format(coherence))
+        perplexity_temp.append(log_perplexity)
+        coherence_temp.append(coherence)
     #
-    jd.log_info("保存模型")
-    lda.save("../model/lda.model")
+    data_temp.show_topic(perplexity, coherence_temp)
+    # lda_vis = pyLDAvis.gensim.prepare(lda, corpus, word_dict)
+    #
+    # jd.log_info("保存模型")
+    # lda.save("../model/lda.model")
     """
     # lda模型对象训练tf-idf词向量
     # corpus_lda = lda[corpus_tfidf]
@@ -239,7 +263,7 @@ def run():
     # for item in result_topic:
         # print(item)
     # LDA主题展示
-    pyLDAvis.show(lda_vis)
+    # pyLDAvis.show(lda_vis)
 if __name__ == "__main__":
     #
     run()
