@@ -5,7 +5,7 @@
 # * Author        : lyz
 # * Email         : lyz038015@163.com
 # * Create time   : 2018-01-17 13:16
-# * Last modified : 2018-01-17 13:16
+# * Last modified : 2018-01-23 23:12
 # * Filename      : merge_origin_data.py
 # * Description   : 
 # *********************************************************
@@ -111,6 +111,19 @@ class data_clean():
         final_data = list_mengniu + list_sanyuan
         # 数据返回
         return final_data
+    #
+    def show_topic(self,perplexity, coherence):
+        """
+        """
+        plt.figure()
+        num_topics = [x for x in range(2,5,1)]
+        plt.plot(perplexity, num_topics, 'b*')
+        plt.plot(coherence, num_topics, 'r')
+        plt.xlabel("Num_topics")
+        plt.ylabel("Quanlity")
+        plt.title('perplexity & coherence')
+        plt.legend()
+        plt.show()
 
 
 
@@ -170,21 +183,6 @@ class text_segmentation():
             seg_words_without_sword.append(words_temp)
         return seg_words_without_sword
 
-    #
-    def show_topic(self,perplexity, coherence):
-        """
-        """
-        plt.figure()
-        num_topics = [x for x in range(2,100,1)]
-        plt.plot(perplerxity, num_topics, 'b*')
-        plt.plot(coherence, num_topics, 'r')
-        plt.xlabel("Num_topics")
-        plt.ylabel("Quanlity")
-        plt.title('perplexity & coherence')
-        plt.legend()
-        plt.show()
-
-
 
 def run():
     """
@@ -225,28 +223,49 @@ def run():
     """
     # 模型训练
     jd.log_info("训练LDA模型.......")
-    perplexity_temp, coherence_temp = list(), list()
-    for i in range(2,100,1):
-        print("num_topics:{0}".format(i))
-        lda = models.LdaModel(corpus = corpus, id2word=word_dict, iterations = 100,num_topics=i)
-        log_perplexity = lda.log_perplexity(corpus)
-        print("\a\a模型评价perplexity:{0}".format(log_perplexity))
-        """
-        # corpus_tfidf: tf-idf词向量
-        # id2word: a map from id to word
-        # num_topics: the number of topics
-        """
-        # Coherence Model:Quantitative approach
-        # u_mass
-        # lda_coherence = CoherenceModel(model = lda, corpus = corpus, dictionary = word_dict, coherence = 'u_mass')
-        # c_v
-        lda_coherence = CoherenceModel(model = lda, texts = seg_words_without_sword, dictionary = word_dict, coherence = 'c_v')
-        coherence = lda_coherence.get_coherence()
-        print("\a\aCoherence:{0}".format(coherence))
-        perplexity_temp.append(log_perplexity)
-        coherence_temp.append(coherence)
+    # 
+    lda = models.LdaModel(corpus = corpus, id2word=word_dict, iterations = 2,num_topics=10)
+    
+    # 输出每条评论属于某个主题的概率
+    jd.log_info('输出第一条评论属于每个主题的概率分布')
+    topic_temp = lda.get_document_topics(corpus[0], minimum_probability=None, minimum_phi_value=None, per_word_topics=False)
+    print(topic_temp)
+    topic_temp.sort(key = lambda k:k[1], reverse = True)
+    print(topic_temp)
+    print ("%s\t%0.3f\n"%(lda.print_topic(topic_temp[0][0],topn=5), topic_temp[0][1]))  
+    for item in topic_temp:
+        print ("%s\t%0.3f\n"%(lda.print_topic(item[0],topn=15), item[1]))  
+
+    #查看训练集中第三个样本的主题分布
+    jd.log_info('查看训练集中第1个样本的主题分布')
+    test_doc=seg_words_without_sword[0]
+    #文档转换成bow  
+    doc_bow = word_dict.doc2bow(test_doc)     
+    
+    #得到新文档的主题分布  
+    doc_lda = lda[doc_bow]                   
+    #输出新文档的主题分布  
+    print (doc_lda)  
+    for topic in doc_lda: 
+        print ("%s\t%0.3f\n"%(lda.print_topic(topic[0],topn=15), topic[1]))  
+
     #
-    data_temp.show_topic(perplexity, coherence_temp)
+    log_perplexity = lda.log_perplexity(corpus)
+    print("\a\a模型评价perplexity:{0}".format(log_perplexity))
+    """
+    # corpus_tfidf: tf-idf词向量
+    # id2word: a map from id to word
+    # num_topics: the number of topics
+    """
+    # Coherence Model:Quantitative approach
+    # u_mass
+    # lda_coherence = CoherenceModel(model = lda, corpus = corpus, dictionary = word_dict, coherence = 'u_mass')
+    # c_v
+    lda_coherence = CoherenceModel(model = lda, texts = seg_words_without_sword, dictionary = word_dict, coherence = 'c_v')
+    coherence = lda_coherence.get_coherence()
+    print("\a\aCoherence:{0}".format(coherence))
+    #
+    # dc.show_topic(perplexity_temp, coherence_temp)
     # lda_vis = pyLDAvis.gensim.prepare(lda, corpus, word_dict)
     #
     # jd.log_info("保存模型")
