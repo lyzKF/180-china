@@ -21,6 +21,8 @@ from gensim import corpora, models
 import pyLDAvis.gensim
 from gensim.models.coherencemodel import CoherenceModel
 import matplotlib.pyplot as plt
+from multiprocessing import Pool
+import multiprocessing
 # 导入自己的库，避免重复造轮子
 import jd
 
@@ -123,7 +125,7 @@ class data_clean():
                 seg_words_temp = jieba.analyse.extract_tags(sentence[1], topK = 3)
                 # 关键词写入文本文档
                 for item in seg_words_temp:
-                    writer.write(item)
+                    writer.write(item+'\n')
     
     def show_topic(self,perplexity, coherence):
         """
@@ -328,9 +330,17 @@ class lda_model():
         for item in topic_temp:
             print ("主题词相关度:%s\n主题概率:%0.3f\n"%(lda.print_topic(item[0],topn=5), item[1]))  
         
-    def calculate_doc_keywords(self, item_corpus, lda):
+    def calculate_doc_keywords(self, item_corpus):
         """
+        param item_corpus : 语料对象
         """
+        # 选择再次加载LDA模型，主要是为了实现程序的并行化
+        if os.path.exists('../model/lda.model'):
+            # 加载模型
+            lda = models.LdaModel.load('../model/lda.model')
+        else:
+            print("缺少训练模型.......")
+            return 0
         # 输出item_corpus属于某个主题的概率
         topic_probability_temp = lda.get_document_topics(
                 item_corpus,                      #
@@ -339,6 +349,7 @@ class lda_model():
                 per_word_topics = False           #
                 )
         # 主题词字典
+        theme_word_text = open('./theme_words.txt', 'a', encoding='utf-8')
         theme_word_dict = dict()
         for item in topic_probability_temp:
             # 
@@ -360,8 +371,10 @@ class lda_model():
             """
         # 降序排序
         sorted(theme_word_dict.items(),key = lambda x:x[1],reverse = True)
-        # 返回主题词字典
-        return theme_word_dict
+        # 写入txt文档
+        theme_word_text.write(theme_word_dict.items() + '\n')
+        # 
+        theme_word_text.close()
 
     def evaluation_model(self, lda, corpus, word_dict, seg_words_without_sword):
         """
@@ -406,10 +419,17 @@ def run():
     # ldamodel.evaluation_model(lda, corpus, word_dict, seg_words_without_sword)
     
     ldamodel.show_topic_detial(corpus,lda)
-
-    theme_word = ldamodel.calculate_doc_keywords(item_corpus = corpus[0], lda = lda)
-
-    print(theme_word)
+    
+    #
+    starttime = time.time()
+    jd.log_info("开启多进程......")
+    cpu_count = multiprocessing.cpu_count()
+    pool = Pool(cpu_count)
+    pool.map(ldamodel.calculate_doc_keywords, corpus)
+    pool.close()
+    pool.join()
+    print("running time:{0}".format(time.time()-starttime))
+    # theme_word = ldamodel.calculate_doc_keywords(item_corpus = corpus[0], lda = lda)
 
 
 #    #查看训练集中第1个样本的主题分布
