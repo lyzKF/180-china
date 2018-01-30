@@ -14,7 +14,17 @@ from gensim.models import Word2Vec
 import codecs
 import numpy as np
 import csv
+from optparse import OptionParser
 
+parser = OptionParser()
+parser.add_option(
+        "-s",
+        dest = "pos",
+        help = "查询对象下标")
+opt, args = parser.parse_args()
+# 查询对象位置
+pos = opt.pos
+assert (pos > 0) == True
 #
 model_path = '../model/wv_gensim'
 # 融合数据
@@ -96,12 +106,11 @@ for item in data_temp:
     theme_words_vector.append(array_temp_mean)    
 
 # 计算相似度评分
-for i in range(10):
-    for j in range(10,len(theme_words_vector)):
-        dot_temp = np.dot(theme_words_vector[i], theme_words_vector[j])
-        dot_temp = "%.6f"% dot_temp
-        print("{0}*{1}={2}:".format(data_temp[i], data_temp[j],dot_temp))
-    
+for j in range(10,len(theme_words_vector)):
+    dot_temp = np.dot(theme_words_vector[pos], theme_words_vector[j])
+    dot_temp = "%.6f"% dot_temp
+    print("{0}*{1}={2}:".format(data_temp[pos], data_temp[j],dot_temp))
+
 
 # 模型提取
 # model = wc.load(model_path)
