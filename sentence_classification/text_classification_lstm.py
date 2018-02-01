@@ -5,8 +5,8 @@
 # * Author        : lyz
 # * Email         : lyz038015@163.com
 # * Create time   : 2018-01-31 17:50
-# * Last modified : 2018-01-31 17:59
-# * Filename      : keras_text.py
+# * Last modified : 2018-02-01 13:44
+# * Filename      : text_classification_lstm.py
 # * Description   : 
 # *********************************************************
 import csv
