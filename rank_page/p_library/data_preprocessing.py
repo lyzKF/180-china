@@ -5,8 +5,8 @@
 # * Author        : lyz
 # * Email         : lyz038015@163.com
 # * Create time   : 2018-01-29 11:41
-# * Last modified : 2018-01-29 11:41
-# * Filename      : clean_data.py
+# * Last modified : 2018-02-14 13:53
+# * Filename      : data_preprocessing.py
 # * Description   : 
 # *********************************************************
 import os
@@ -88,7 +88,7 @@ def get_data_from_pkl(pkl_path):
     return data_temp
 
 
-def get_data_from_mongo():
+def get_data_from_mongo(test_len = 0):
     """
 
     """
@@ -103,7 +103,8 @@ def get_data_from_mongo():
     #
     v_data = dict()
     for item in result_temp:
-        v_data[item["V_id"]] = item["text"]
+        if len(item["text"]) > text_len:
+            v_data[item["V_id"]] = item["text"]
     return v_data
 
 
