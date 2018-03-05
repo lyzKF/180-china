@@ -1,0 +1,1 @@
+* * * * * /opt/Anaconda3/bin/python /Users/lyz/workspace/shell_cron/detect_mongo.py >> /Users/lyz/workspace/shell_cron/mongo_log.txt 2>&1
