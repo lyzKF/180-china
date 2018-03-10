@@ -48,7 +48,11 @@ class single_sentence():
 
     def __init__(self, top_k, top_n, iterations, num_topics, stop_words_path):
         """
-
+        param top_k : 从输入sentence中选择最终的输出长度。eg : top_k = 4, 最后返回的list长度为4
+        param top_n : 每个topic选择词的长度。eg : top_n = 4，每个topic选择权重较高的四个词
+        param iterations : LDA模型的迭代次数
+        param num_topic : LDA模型的主体数量
+        param stop_words_path : 停用词路径
         """
         self.top_k = top_k
         self.top_n = top_n
@@ -58,8 +62,8 @@ class single_sentence():
 
     def sentence_transmit(self, target_sentence):
         """
-        param target_sentence:
-        return:
+        param target_sentence : 输入的sentence
+        return
         """
 
         target_sentence = data_preprocessing.extract_chinese(target_sentence)
@@ -132,7 +136,7 @@ class single_sentence():
 def lda_single_sentence(sentence):
     """
     param : sentence 语料
-    return:
+    return
     """
     lda_words = dict()
     stop_words_path = "./stopWords.txt"
