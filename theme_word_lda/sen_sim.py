@@ -21,16 +21,11 @@ sys.path.append("/home/lgl/")
 from p_library import data_preprocessing
 import theme_word_one
 
-def read_mongo():
+def read_mongo(collection):
     """
     param collection: mongo数据连接对象
     return 
     """
-    collection = data_preprocessing.connect_mongo(
-            '192.168.3.104', 
-            'theme_words', 
-            'words', 
-            27017)
     # 
     id2words = dict()
     result_temp = collection.find()
@@ -123,24 +118,39 @@ def test_sim(theme_sentence_vector):
             print("{0}->ID:{1} Sim:{2}".format(key_vector, vec_idx, dot_temp))
 
 
-def show_sim(input_vecor, theme_sentence_vector):
+def show_sim(project_id, input_vecor, theme_sentence_vector):
     """
+    param project_id : 项目id
     param input_vector : 输入sentence的vec
     param theme_sentence_vector :
+    project_id, doc_id, source_id, similarity, update_time
     """
-    
+    time_temp = time.time()
+    time_temp = int(time.time())
+    timeArray = time.localtime(time_temp)
+    stamp_temp = time.strftime("%Y--%m--%d %H:%M:%S", timeArray)
+    collection = data_preprocessing.connect_mongo(
+            '192.168.3.104', 
+            'ripe_DB', 
+            'Sim', 
+            27017)
+      
     if len(set(input_vector)) == 1 and np.sum(set(input_vector)) == 0:
         print("输入错误")
         print(input_vector)
     else:
         print("输出相似度信息")
-        
         data_preprocessing.log_info("输出sim信息......")
         for vec_idx in theme_sentence_vector.keys():
 
+            id2sim_temp = dict()
             dot_temp = cos_sim(np.array(input_vector), np.array(theme_sentence_vector[vec_idx]))
-            print("ID:{0} Sim:{1}".format(vec_idx, dot_temp))
 
+            id2sim_temp[project_id] = [vec_idx, 1, dot_temp, stamp_temp]
+
+            # print("ID:{0} Sim:{1}".format(vec_idx, dot_temp))
+            
+            collection.insert(id2sim_temp)
     
 
 def run(rpc_params):
@@ -154,7 +164,12 @@ def run(rpc_params):
     target_text = params['parameter_list']
 
     data_preprocessing.log_info("获取主题词......")
-    id2words = read_mongo()
+    collection = data_preprocessing.connect_mongo(
+            '192.168.3.104', 
+            'theme_words', 
+            'words', 
+            27017)
+    id2words = read_mongo(collection)
     
     data_preprocessing.log_info("加载wordembedding模型......")
     model_path = "../wv/word2vec_wx"
@@ -187,6 +202,8 @@ def run(rpc_params):
 
     data_preprocessing.log_info("计算sentenceembedding......")
     input_vector = sentence_embedding(target_words = input_words, wv_model = wv_model_local)
+
+    show_sim(input_vector, theme_sentence_vector)
 
 
 if __name__ == "__main__":
