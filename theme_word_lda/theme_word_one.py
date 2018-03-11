@@ -192,7 +192,7 @@ def run():
     starttime = time.time()
     cpu_count = multiprocessing.cpu_count()
     pool = Pool(cpu_count)
-    theme_words = pool.map(lda_single_sentence, v_data_sen)
+    pool.map(lda_single_sentence, v_data_sen)
     pool.close()
     pool.join()
     data_preprocessing.log_info("多进程执行结束......")
